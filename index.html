@@ -1,0 +1,701 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>AGV/AMR INFO Systems – Reapplication Dashboard</title>
+<style>
+:root {
+  --blue:#0078d4; --blue-dk:#005a9e; --blue-lt:#e8f3fd;
+  --green:#107c10; --green-lt:#dff6dd;
+  --yellow:#c7a800; --yellow-lt:#fff4ce;
+  --red:#d13438; --red-lt:#fde7e9;
+  --gray:#8a8886; --gray-lt:#f3f2f1;
+  --border:#e1dfdd; --text:#323130; --white:#fff;
+  --shadow:0 2px 8px rgba(0,0,0,.12);
+  --cat-bg:#c8c8c8; --cat-text:#201f1e;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI',sans-serif;background:#f3f2f1;color:var(--text);font-size:14px}
+
+/* ── HEADER ── */
+header{background:var(--blue);color:#fff;padding:14px 24px;display:flex;align-items:center;justify-content:space-between;box-shadow:var(--shadow);position:sticky;top:0;z-index:50}
+header h1{font-size:1.1rem;font-weight:700;letter-spacing:.2px}
+header .subtitle{font-size:.78rem;opacity:.8;margin-top:2px}
+
+/* ── LAYOUT ── */
+.shell{display:flex;height:calc(100vh - 53px)}
+.sidebar{width:220px;flex-shrink:0;background:#fff;border-right:1px solid var(--border);overflow-y:auto;padding:12px 0}
+.main{flex:1;overflow-y:auto;padding:20px}
+
+/* ── SIDEBAR NAV ── */
+.nav-section{padding:4px 16px 2px;font-size:.7rem;font-weight:700;text-transform:uppercase;color:var(--gray);letter-spacing:.6px;margin-top:8px}
+.nav-item{display:flex;align-items:center;gap:6px;padding:6px 16px;cursor:pointer;font-size:.82rem;border-left:3px solid transparent;transition:all .15s}
+.nav-item:hover{background:var(--blue-lt);color:var(--blue)}
+.nav-item.active{border-left-color:var(--blue);background:var(--blue-lt);color:var(--blue);font-weight:600}
+.nav-item .badge-count{margin-left:auto;background:var(--gray-lt);color:var(--gray);font-size:.68rem;padding:1px 6px;border-radius:10px}
+
+/* ── KPI ROW ── */
+.kpi-row{display:flex;gap:12px;margin-bottom:18px;flex-wrap:wrap}
+.kpi{background:#fff;border-radius:8px;padding:14px 18px;flex:1;min-width:120px;box-shadow:var(--shadow);border-top:3px solid var(--blue);text-align:center}
+.kpi.g{border-top-color:var(--green)}.kpi.y{border-top-color:var(--yellow)}.kpi.r{border-top-color:var(--red)}
+.kpi .n{font-size:1.9rem;font-weight:700}.kpi .l{font-size:.72rem;color:var(--gray);text-transform:uppercase;letter-spacing:.4px;margin-top:2px}
+
+/* ── SITE OVERVIEW ── */
+.overview-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:8px;margin-bottom:18px}
+.site-tile{background:#fff;border-radius:8px;padding:10px 8px;text-align:center;box-shadow:var(--shadow);border-top:3px solid var(--border)}
+.site-tile.cg{border-top-color:var(--green)}.site-tile.cy{border-top-color:var(--yellow)}.site-tile.cr{border-top-color:var(--red)}.site-tile.cn{border-top-color:var(--gray)}
+.site-tile .sn{font-size:.72rem;font-weight:700;margin-bottom:4px}.site-tile .sp{font-size:1.15rem;font-weight:700}
+.site-tile.cg .sp{color:var(--green)}.site-tile.cy .sp{color:var(--yellow)}.site-tile.cr .sp{color:var(--red)}.site-tile.cn .sp{color:var(--gray)}
+
+/* ── PANEL ── */
+.panel{background:#fff;border-radius:8px;box-shadow:var(--shadow);margin-bottom:16px;overflow:hidden}
+.panel-head{padding:12px 16px;font-size:.9rem;font-weight:700;color:var(--blue-dk);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.panel-body{padding:16px}
+
+/* ── CATEGORY TABLE ── */
+.cat-block{margin-bottom:4px;border-radius:6px;overflow:hidden;border:1px solid var(--border)}
+.cat-header{background:var(--cat-bg);padding:9px 14px;display:flex;align-items:center;gap:8px;cursor:pointer;user-select:none;font-weight:700;font-size:.85rem;color:var(--cat-text)}
+.cat-header:hover{background:#b8b8b8}
+.cat-header .chevron{transition:transform .2s;font-size:.7rem;margin-left:auto}
+.cat-header.collapsed .chevron{transform:rotate(-90deg)}
+.cat-body{display:block}
+.cat-body.hidden{display:none}
+
+table{width:100%;border-collapse:collapse;font-size:.8rem}
+thead th{background:#f8f7f6;padding:7px 10px;text-align:left;font-weight:700;font-size:.73rem;text-transform:uppercase;letter-spacing:.3px;color:var(--gray);border-bottom:2px solid var(--border);white-space:nowrap;position:sticky;top:0;z-index:2}
+tbody td{padding:7px 10px;border-bottom:1px solid var(--border);vertical-align:middle}
+tbody tr:last-child td{border-bottom:none}
+tbody tr:hover td{background:#faf9f8}
+
+/* ── BADGES ── */
+.b{display:inline-block;padding:2px 7px;border-radius:10px;font-size:.7rem;font-weight:600;white-space:nowrap}
+.b-complete{background:var(--green-lt);color:var(--green)}
+.b-progress{background:var(--yellow-lt);color:#7d6200}
+.b-delayed{background:var(--red-lt);color:var(--red)}
+.b-na{background:var(--gray-lt);color:var(--gray)}
+.b-blank{color:#ccc;font-size:.75rem}
+.b-essential{background:#e8f0fe;color:var(--blue)}
+.b-high{background:#fde7e9;color:var(--red)}
+.b-medium{background:var(--yellow-lt);color:#7d6200}
+.b-low{background:var(--gray-lt);color:var(--gray)}
+.eq-tag{display:inline-block;padding:1px 6px;border-radius:3px;font-size:.68rem;font-weight:700;margin:1px}
+.eq-agv{background:#dce6f7;color:#004578}
+.eq-amr{background:#e6f2e6;color:#004b00}
+.eq-qr{background:#fdf2e6;color:#7d4a00}
+
+/* ── PCT BAR ── */
+.pbar{display:flex;align-items:center;gap:6px}
+.pbar-track{flex:1;background:var(--border);border-radius:3px;height:7px;min-width:50px}
+.pbar-fill{height:100%;border-radius:3px}
+.pbar-g{background:var(--green)}.pbar-y{background:var(--yellow)}.pbar-r{background:var(--red)}.pbar-n{background:var(--gray)}
+
+/* ── FILTERS BAR ── */
+.filters{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:14px}
+.filters input,.filters select{border:1px solid var(--border);border-radius:4px;padding:5px 10px;font-size:.82rem;outline:none;background:#fff;font-family:inherit}
+.filters input:focus,.filters select:focus{border-color:var(--blue)}
+.btn-add{background:var(--blue);color:#fff;border:none;border-radius:4px;padding:6px 14px;font-size:.82rem;font-weight:700;cursor:pointer}
+.btn-add:hover{background:var(--blue-dk)}
+
+/* ── DRAWER ── */
+.drawer-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:200}
+.drawer-overlay.open{display:block}
+.drawer{position:fixed;top:0;right:0;height:100%;width:480px;max-width:100%;background:#fff;box-shadow:-4px 0 24px rgba(0,0,0,.18);z-index:201;display:flex;flex-direction:column;transform:translateX(100%);transition:transform .25s}
+.drawer.open{transform:translateX(0)}
+.drawer-header{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;background:var(--blue);color:#fff;flex-shrink:0}
+.drawer-header h2{font-size:1rem;font-weight:700}
+.drawer-close{background:none;border:none;color:#fff;font-size:1.5rem;cursor:pointer;line-height:1;opacity:.8}
+.drawer-close:hover{opacity:1}
+.drawer-body{flex:1;overflow-y:auto;padding:20px}
+.drawer-footer{padding:14px 20px;border-top:1px solid var(--border);display:flex;gap:10px;justify-content:flex-end;flex-shrink:0}
+
+.fg{display:flex;flex-direction:column;gap:4px;margin-bottom:14px}
+.fg label{font-size:.73rem;font-weight:700;text-transform:uppercase;color:var(--gray);letter-spacing:.3px}
+.fg input,.fg select,.fg textarea{border:1px solid var(--border);border-radius:4px;padding:7px 10px;font-size:.85rem;font-family:inherit;outline:none;color:var(--text)}
+.fg input:focus,.fg select:focus,.fg textarea:focus{border-color:var(--blue);box-shadow:0 0 0 2px rgba(0,120,212,.15)}
+.fg textarea{resize:vertical;min-height:80px}
+.fg-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+
+.section-title{font-size:.78rem;font-weight:700;text-transform:uppercase;color:var(--gray);letter-spacing:.4px;margin:18px 0 10px;border-top:1px solid var(--border);padding-top:14px}
+.sites-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px}
+.site-input{display:flex;flex-direction:column;gap:3px}
+.site-input label{font-size:.72rem;font-weight:700;color:var(--text)}
+.site-input select{font-size:.78rem;padding:4px 6px;border:1px solid var(--border);border-radius:4px;outline:none}
+.site-input select:focus{border-color:var(--blue)}
+
+.btn{padding:7px 18px;border-radius:4px;font-size:.83rem;font-weight:700;cursor:pointer;border:1px solid transparent}
+.btn-primary{background:var(--blue);color:#fff;border-color:var(--blue)}.btn-primary:hover{background:var(--blue-dk)}
+.btn-secondary{background:#fff;color:var(--text);border-color:var(--border)}.btn-secondary:hover{background:var(--gray-lt)}
+.btn-danger{background:var(--red);color:#fff}.btn-danger:hover{filter:brightness(.9)}
+.btn-edit{background:none;border:none;color:var(--blue);cursor:pointer;font-size:.78rem;padding:2px 6px;border-radius:3px}
+.btn-edit:hover{background:var(--blue-lt)}
+
+/* ── TABS ── */
+.tabs{display:flex;border-bottom:2px solid var(--border);margin-bottom:16px;gap:0}
+.tab{padding:9px 20px;cursor:pointer;font-size:.85rem;font-weight:600;color:var(--gray);border-bottom:3px solid transparent;margin-bottom:-2px;transition:all .15s}
+.tab:hover{color:var(--blue)}
+.tab.active{color:var(--blue);border-bottom-color:var(--blue)}
+.tab-pane{display:none}.tab-pane.active{display:block}
+
+/* ── LEGEND ── */
+.legend{display:flex;gap:14px;flex-wrap:wrap;margin-bottom:14px;font-size:.75rem}
+.legend-item{display:flex;align-items:center;gap:4px}
+
+/* ── HOLD BANNER ── */
+.hold-banner{background:#fff4ce;border:1px solid #c7a800;border-radius:4px;padding:4px 10px;font-size:.75rem;color:#7d6200;font-weight:600;display:inline-block}
+
+@media(max-width:700px){.shell{flex-direction:column}.sidebar{width:100%;border-right:none;border-bottom:1px solid var(--border)}.drawer{width:100%}}
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>🤖 AGV / AMR INFO Systems</h1>
+    <div class="subtitle">Goods Movement Platform — Reapplication Matrix</div>
+  </div>
+  <div style="font-size:.78rem;opacity:.8" id="hdr-counts"></div>
+</header>
+
+<div class="shell">
+  <!-- SIDEBAR -->
+  <nav class="sidebar" id="sidebar"></nav>
+
+  <!-- MAIN -->
+  <div class="main" id="main">
+    <div class="tabs">
+      <div class="tab active" onclick="switchTab('overview')">📊 Overview</div>
+      <div class="tab" onclick="switchTab('matrix')">📋 Matrix</div>
+    </div>
+
+    <!-- OVERVIEW TAB -->
+    <div class="tab-pane active" id="tab-overview">
+      <div class="kpi-row" id="kpi-row"></div>
+      <div class="panel">
+        <div class="panel-head">Site Completion</div>
+        <div class="panel-body">
+          <div class="legend">
+            <div class="legend-item"><span style="display:inline-block;width:10px;height:10px;background:var(--green);border-radius:2px"></span> ≥80% Complete</div>
+            <div class="legend-item"><span style="display:inline-block;width:10px;height:10px;background:var(--yellow);border-radius:2px"></span> 40–79%</div>
+            <div class="legend-item"><span style="display:inline-block;width:10px;height:10px;background:var(--red);border-radius:2px"></span> &lt;40%</div>
+            <div class="legend-item"><span style="display:inline-block;width:10px;height:10px;background:var(--gray);border-radius:2px"></span> No data</div>
+          </div>
+          <div class="overview-grid" id="site-overview"></div>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="panel-head">Category Progress</div>
+        <div class="panel-body" id="cat-progress"></div>
+      </div>
+    </div>
+
+    <!-- MATRIX TAB -->
+    <div class="tab-pane" id="tab-matrix">
+      <div class="filters">
+        <input type="text" id="f-search" placeholder="🔍 Search titles…" oninput="renderMatrix()" style="width:200px">
+        <select id="f-cat" onchange="renderMatrix()"><option value="">All Categories</option></select>
+        <select id="f-eqtype" onchange="renderMatrix()"><option value="">All Equipment Types</option><option>AGV</option><option>AMR</option><option>QR</option></select>
+        <select id="f-priority" onchange="renderMatrix()"><option value="">All Priorities</option><option>Essential</option><option>High</option><option>Medium</option><option>Low</option></select>
+        <select id="f-site" onchange="renderMatrix()"><option value="">All Sites</option></select>
+        <button class="btn-add" onclick="openDrawer()">+ Add Item</button>
+      </div>
+      <div id="matrix-content"></div>
+    </div>
+  </div>
+</div>
+
+<!-- DRAWER OVERLAY -->
+<div class="drawer-overlay" id="drawer-overlay" onclick="closeDrawer()"></div>
+<div class="drawer" id="drawer">
+  <div class="drawer-header">
+    <h2 id="drawer-title">Add Item</h2>
+    <button class="drawer-close" onclick="closeDrawer()">×</button>
+  </div>
+  <div class="drawer-body">
+    <div class="fg-row">
+      <div class="fg" style="grid-column:1/-1">
+        <label>Improvement Title *</label>
+        <input id="d-title" type="text" placeholder="Enter improvement title…">
+      </div>
+    </div>
+    <div class="fg-row">
+      <div class="fg">
+        <label>Category</label>
+        <select id="d-cat"></select>
+      </div>
+      <div class="fg">
+        <label>Technology</label>
+        <input id="d-tech" type="text" placeholder="e.g. Gen 1">
+      </div>
+    </div>
+    <div class="fg-row">
+      <div class="fg">
+        <label>Equipment Type</label>
+        <select id="d-eqtype">
+          <option value="">— Select —</option>
+          <option>AGV</option>
+          <option>AMR</option>
+          <option>QR</option>
+        </select>
+      </div>
+      <div class="fg">
+        <label>Priority</label>
+        <select id="d-priority">
+          <option value="">—</option>
+          <option>Essential</option>
+          <option>High</option>
+          <option>Medium</option>
+          <option>Low</option>
+        </select>
+      </div>
+    </div>
+    <div class="fg-row">
+      <div class="fg">
+        <label>Lead Site</label>
+        <input id="d-lead" type="text" placeholder="e.g. DYFC">
+      </div>
+      <div class="fg">
+        <label>Vendor</label>
+        <input id="d-vendor" type="text" placeholder="e.g. JBT">
+      </div>
+    </div>
+    <div class="fg-row">
+      <div class="fg">
+        <label>Owner</label>
+        <input id="d-owner" type="text" placeholder="Name">
+      </div>
+      <div class="fg">
+        <label>Type / Source</label>
+        <input id="d-type" type="text" placeholder="e.g. Site, Methodology">
+      </div>
+    </div>
+    <div class="fg">
+      <label>CMF / Documentation / SharePoint Link</label>
+      <input id="d-cmf" type="text" placeholder="URL or reference number">
+    </div>
+
+    <div class="section-title">📍 Site Status</div>
+    <div class="sites-grid" id="d-sites"></div>
+
+    <div class="section-title">📝 Comments &amp; Documentation</div>
+    <div class="fg">
+      <label>Comments</label>
+      <textarea id="d-comment" placeholder="Add notes, observations, or status updates…"></textarea>
+    </div>
+    <div class="fg">
+      <label>Documentation / Links</label>
+      <textarea id="d-docs" placeholder="Paste links, document references, or additional documentation…" style="min-height:60px"></textarea>
+    </div>
+    <div class="fg">
+      <label>On Hold / Special Status</label>
+      <input id="d-hold" type="text" placeholder='e.g. Full Project "ON HOLD"'>
+    </div>
+  </div>
+  <div class="drawer-footer">
+    <button class="btn btn-danger" id="btn-delete" onclick="deleteItem()" style="display:none;margin-right:auto">🗑 Delete</button>
+    <button class="btn btn-secondary" onclick="closeDrawer()">Cancel</button>
+    <button class="btn btn-primary" onclick="saveItem()">💾 Save</button>
+  </div>
+</div>
+
+<script>
+const SITES = ['DYFC','NEFC','GCFC','DLMC','WCMC','SEFC','BRMC','Tabler EI','Tabler Rx','St Louis','Mexico','Cape','Mehoopany','Dover'];
+
+// ─── CATEGORIES & SEED DATA ───
+const CATEGORIES = [
+  'Equipment','Warehouse Control System','Info Security Improvements',
+  'Operational Excellence Improvements','Capability','Systems/Tools',
+  'Obsolescence','Charger','Auto Truck Load/Unload','Auto Yard Truck',
+  'Operating Strategy by Site','Roadmap'
+];
+
+let data = [
+  // ── Equipment ──
+  {id:2,  cat:'Equipment', title:'Gen1 AGV',                              tech:'Gen 1', eqtype:'AGV', lead:'Tabler', vendor:'Hyster', owner:'', type:'', priority:'', cmf:'', sites:{DYFC:'1',NEFC:'1',GCFC:'1',DLMC:'1',WCMC:'1',SEFC:'1',BRMC:'0.5','Tabler EI':'1','Tabler Rx':'1','St Louis':'1',Mexico:'0.5',Cape:'NA',Mehoopany:'NA',Dover:'NA'}, comment:'', docs:'', hold:''},
+  {id:3,  cat:'Equipment', title:'Next Gen AGV Pilot',                    tech:'Gen 1', eqtype:'AGV', lead:'DYFC',  vendor:'JBT',    owner:'', type:'', priority:'', cmf:'', sites:{DYFC:'0.5',NEFC:'NA',GCFC:'NA',DLMC:'NA',WCMC:'NA',SEFC:'NA',BRMC:'NA','Tabler EI':'NA','Tabler Rx':'NA','St Louis':'NA',Mexico:'NA',Cape:'NA',Mehoopany:'NA',Dover:'NA'}, comment:'', docs:'', hold:''},
+  {id:4,  cat:'Equipment', title:'Wheel Brush Guards',                    tech:'Gen 1', eqtype:'AGV', lead:'DYFC',  vendor:'Hyster', owner:'', type:'', priority:'', cmf:'', sites:{DYFC:'0.5',NEFC:'0.5',GCFC:'0.5',DLMC:'0.5',WCMC:'0.5',SEFC:'0.5',BRMC:'0.5','Tabler EI':'NA','Tabler Rx':'NA','St Louis':'NA',Mexico:'NA',Cape:'NA',Mehoopany:'NA',Dover:'NA'}, comment:'New Delivery BOM Inclusion (BRMC & Mexico), Verify site install on existing vehicles', docs:'', hold:''},
+  {id:5,  cat:'Equipment', title:'I/O Box Protection',                    tech:'Gen 1', eqtype:'AGV', lead:'NEFC',  vendor:'JBT',    owner:'', type:'', priority:'', cmf:'', sites:{}, comment:'', docs:'', hold:''},
+  {id:6,  cat:'Equipment', title:'Dual Foot Pedal - Brake Safety Improvement', tech:'Gen 1', eqtype:'AGV', lead:'DYFC', vendor:'Hyster', owner:'', type:'', priority:'', cmf:'', sites:{}, comment:'', docs:'', hold:''},
+  {id:7,  cat:'Equipment', title:'Encoder 3 Relocation',                 tech:'Gen 1', eqtype:'AGV', lead:'DYFC',  vendor:'JBT',    owner:'', type:'', priority:'', cmf:'', sites:{}, comment:'', docs:'', hold:''},
+  {id:8,  cat:'Equipment', title:'Reset Node Scanner',                   tech:'Gen 1', eqtype:'AGV', lead:'GCFC',  vendor:'JBT',    owner:'', type:'', priority:'', cmf:'', sites:{}, comment:'', docs:'', hold:''},
+  {id:9,  cat:'Equipment', title:'Next Gen Wireless Siemens Bridge - Wifi Connection Improvement', tech:'Gen 1', eqtype:'AGV', lead:'NEFC', vendor:'', owner:'', type:'', priority:'', cmf:'', sites:{}, comment:'', docs:'', hold:''},
+  {id:10, cat:'Equipment', title:'Nanoscan Retrofit',                    tech:'Gen 1', eqtype:'AGV', lead:'',      vendor:'',       owner:'', type:'', priority:'', cmf:'', sites:{}, comment:'', docs:'', hold:''},
+  {id:11, cat:'Equipment', title:'Outrigger (single, dual, # wheels)',   tech:'Gen 1', eqtype:'AGV', lead:'',      vendor:'',       owner:'', type:'', priority:'', cmf:'', sites:{}, comment:'', docs:'', hold:''},
+  {id:12, cat:'Equipment', title:'Vertical Movement - A Cell',           tech:'Gen 1', eqtype:'AGV', lead:'',      vendor:'',       owner:'', type:'', priority:'', cmf:'', sites:{}, comment:'', docs:'', hold:''},
+  {id:13, cat:'Equipment', title:'Vertical Movement - B Cell',           tech:'Gen 1', eqtype:'AGV', lead:'',      vendor:'',       owner:'', type:'', priority:'', cmf:'', sites:{}, comment:'', docs:'', hold:''},
+  {id:14, cat:'Equipment', title:'Vertical Movement - C Cell',           tech:'Gen 1', eqtype:'AGV', lead:'',      vendor:'',       owner:'', type:'', priority:'', cmf:'', sites:{}, comment:'', docs:'', hold:''},
+  {id:15, cat:'Equipment', title:'Vertical Movement - D Cell',           tech:'Gen 1', eqtype:'AGV', lead:'',      vendor:'',       owner:'', type:'', priority:'', cmf:'', sites:{}, comment:'', docs:'', hold:''},
+  {id:16, cat:'Equipment', title:'Vertical Movement - E Cell',           tech:'Gen 1', eqtype:'AGV', lead:'',      vendor:'',       owner:'', type:'', priority:'', cmf:'', sites:{}, comment:'', docs:'', hold:''},
+  {id:17, cat:'Equipment', title:'Vertical Movement - F Cell',           tech:'Gen 1', eqtype:'AGV', lead:'',      vendor:'',       owner:'', type:'', priority:'', cmf:'', sites:{}, comment:'', docs:'', hold:''},
+  {id:18, cat:'Equipment', title:'Vertical Movement - Manual Layer Pick Reconfig', tech:'Gen 1', eqtype:'AGV', lead:'', vendor:'', owner:'', type:'', priority:'', cmf:'', sites:{}, comment:'', docs:'', hold:''},
+  {id:19, cat:'Equipment', title:'Vertical Movement - Manual Case Pick Reconfig',  tech:'Gen 1', eqtype:'AGV', lead:'', vendor:'', owner:'', type:'', priority:'', cmf:'', sites:{}, comment:'', docs:'', hold:''},
+  // ── Warehouse Control System ──
+  {id:20, cat:'Warehouse Control System', title:'SGVM Version',          tech:'Gen 1', eqtype:'AGV', lead:'',      vendor:'',       owner:'', type:'', priority:'', cmf:'', sites:{}, comment:'', docs:'', hold:'Full Project "ON HOLD"'},
+  {id:21, cat:'Warehouse Control System', title:'C# Upgrade',            tech:'',      eqtype:'AGV', lead:'',      vendor:'',       owner:'', type:'', priority:'', cmf:'', sites:{}, comment:'', docs:'', hold:'Full Project "ON HOLD"'},
+  {id:22, cat:'Warehouse Control System', title:'Vehicle File Version',  tech:'Gen 1', eqtype:'AGV', lead:'',      vendor:'',       owner:'', type:'', priority:'', cmf:'', sites:{}, comment:'', docs:'', hold:''},
+  {id:23, cat:'Warehouse Control System', title:'MotOS',                 tech:'Gen 1', eqtype:'AGV', lead:'',      vendor:'',       owner:'', type:'', priority:'', cmf:'', sites:{}, comment:'', docs:'', hold:''},
+  {id:24, cat:'Warehouse Control System', title:'64 Bit GUI Upgrade',    tech:'Gen 1', eqtype:'AGV', lead:'',      vendor:'',       owner:'', type:'', priority:'', cmf:'', sites:{}, comment:'', docs:'', hold:''},
+  {id:25, cat:'Warehouse Control System', title:'Database Server Architecture Upgrade - Server Speed Improvement', tech:'Gen 1', eqtype:'AGV', lead:'', vendor:'', owner:'', type:'', priority:'', cmf:'', sites:{}, comment:'', docs:'', hold:''},
+  // ── Info Security Improvements ──
+  {id:26, cat:'Info Security Improvements', title:'Proper Federation Integration (Single Sign On)', tech:'Gen 1', eqtype:'AGV', lead:'', vendor:'', owner:'', type:'', priority:'', cmf:'', sites:{}, comment:'', docs:'', hold:''},
+  {id:27, cat:'Info Security Improvements', title:'Observability Enablement',       tech:'Gen 1', eqtype:'AGV', lead:'', vendor:'', owner:'', type:'', priority:'', cmf:'', sites:{}, comment:'', docs:'', hold:''},
+  {id:28, cat:'Info Security Improvements', title:'Info Security Remediation',      tech:'Gen 1', eqtype:'AGV', lead:'', vendor:'', owner:'', type:'', priority:'', cmf:'', sites:{}, comment:'', docs:'', hold:''},
+  {id:29, cat:'Info Security Improvements', title:'Disaster Recovery Testing',      tech:'Gen 1', eqtype:'AGV', lead:'', vendor:'', owner:'', type:'', priority:'', cmf:'', sites:{}, comment:'', docs:'', hold:''},
+  {id:30, cat:'Info Security Improvements', title:'Ping ID Integration - Cyber Security (GBS lead - need JBT support)', tech:'', eqtype:'AGV', lead:'', vendor:'', owner:'', type:'', priority:'', cmf:'', sites:{}, comment:'', docs:'', hold:''},
+  // ── Operational Excellence Improvements ──
+  {id:31, cat:'Operational Excellence Improvements', title:'CMF xx (1)', tech:'Gen 1', eqtype:'AGV', lead:'', vendor:'', owner:'', type:'', priority:'', cmf:'', sites:{}, comment:'', docs:'', hold:''},
+  {id:32, cat:'Operational Excellence Improvements', title:'CMF xx (2)', tech:'Gen 1', eqtype:'AGV', lead:'', vendor:'', owner:'', type:'', priority:'', cmf:'', sites:{}, comment:'', docs:'', hold:''},
+  {id:33, cat:'Operational Excellence Improvements', title:'CMF xx (3)', tech:'Gen 1', eqtype:'AGV', lead:'', vendor:'', owner:'', type:'', priority:'', cmf:'', sites:{}, comment:'', docs:'', hold:''},
+  {id:34, cat:'Operational Excellence Improvements', title:'CMF xx (4)', tech:'Gen 1', eqtype:'AGV', lead:'', vendor:'', owner:'', type:'', priority:'', cmf:'', sites:{}, comment:'', docs:'', hold:''},
+  {id:35, cat:'Operational Excellence Improvements', title:'CMF xx (5)', tech:'Gen 1', eqtype:'AGV', lead:'', vendor:'', owner:'', type:'', priority:'', cmf:'', sites:{}, comment:'', docs:'', hold:''},
+  // ── Capability ──
+  {id:36, cat:'Capability', title:'SME Assignment',          tech:'Gen 1', eqtype:'AGV', lead:'', vendor:'',    owner:'', type:'', priority:'', cmf:'', sites:{}, comment:'', docs:'', hold:''},
+  {id:37, cat:'Capability', title:'MRU 1 Qualification',     tech:'Gen 1', eqtype:'AGV', lead:'', vendor:'JBT', owner:'', type:'', priority:'', cmf:'', sites:{}, comment:'', docs:'', hold:''},
+  {id:38, cat:'Capability', title:'MRU 2 Qualification',     tech:'Gen 1', eqtype:'AGV', lead:'', vendor:'JBT', owner:'', type:'', priority:'', cmf:'', sites:{}, comment:'', docs:'', hold:''},
+  {id:39, cat:'Capability', title:'MRU 3 Qualification',     tech:'Gen 1', eqtype:'AGV', lead:'', vendor:'JBT', owner:'', type:'', priority:'', cmf:'', sites:{}, comment:'', docs:'', hold:''},
+  {id:40, cat:'Capability', title:'MRU 4 Qualification',     tech:'Gen 1', eqtype:'AGV', lead:'', vendor:'JBT', owner:'', type:'', priority:'', cmf:'', sites:{}, comment:'', docs:'', hold:''},
+  {id:41, cat:'Capability', title:'MRU 5 Qualification',     tech:'Gen 1', eqtype:'AGV', lead:'', vendor:'JBT', owner:'', type:'', priority:'', cmf:'', sites:{}, comment:'', docs:'', hold:''},
+  {id:42, cat:'Capability', title:'MRU 6 Qualification',     tech:'Gen 1', eqtype:'AGV', lead:'', vendor:'JBT', owner:'', type:'', priority:'', cmf:'', sites:{}, comment:'', docs:'', hold:''},
+  {id:43, cat:'Capability', title:'EO SUC',                  tech:'Gen 1', eqtype:'AGV', lead:'', vendor:'',    owner:'', type:'', priority:'', cmf:'', sites:{}, comment:'', docs:'', hold:''},
+  {id:44, cat:'Capability', title:'BPO SUC',                 tech:'Gen 1', eqtype:'AGV', lead:'', vendor:'',    owner:'', type:'', priority:'', cmf:'', sites:{}, comment:'', docs:'', hold:''},
+  {id:45, cat:'Capability', title:'TL SUC',                  tech:'Gen 1', eqtype:'AGV', lead:'', vendor:'',    owner:'', type:'', priority:'', cmf:'', sites:{}, comment:'', docs:'', hold:''},
+  {id:46, cat:'Capability', title:'PE SUC',                  tech:'Gen 1', eqtype:'AGV', lead:'', vendor:'',    owner:'', type:'', priority:'', cmf:'', sites:{}, comment:'', docs:'', hold:''},
+  {id:47, cat:'Capability', title:'ODL SUC',                 tech:'Gen 1', eqtype:'AGV', lead:'', vendor:'',    owner:'', type:'', priority:'', cmf:'', sites:{}, comment:'', docs:'', hold:''},
+  {id:48, cat:'Capability', title:'General AGV SUC',         tech:'Gen 1', eqtype:'AGV', lead:'', vendor:'',    owner:'', type:'', priority:'', cmf:'', sites:{}, comment:'', docs:'', hold:''},
+  {id:49, cat:'Capability', title:'PM - Vehicle Calibration X', tech:'Gen 1', eqtype:'AGV', lead:'', vendor:'', owner:'', type:'', priority:'', cmf:'', sites:{}, comment:'', docs:'', hold:''},
+  {id:50, cat:'Capability', title:'PM - Vehicle Calibration Y', tech:'Gen 1', eqtype:'AGV', lead:'', vendor:'', owner:'', type:'', priority:'', cmf:'', sites:{}, comment:'', docs:'', hold:''},
+  {id:51, cat:'Capability', title:'PM - Load Wheel Insourcing', tech:'Gen 1', eqtype:'AGV', lead:'', vendor:'', owner:'', type:'', priority:'', cmf:'', sites:{}, comment:'', docs:'', hold:''},
+  {id:52, cat:'Capability', title:'PM - Top 10 Parts',       tech:'Gen 1', eqtype:'AGV', lead:'', vendor:'',    owner:'', type:'', priority:'', cmf:'', sites:{}, comment:'', docs:'', hold:''},
+  // ── Systems/Tools ──
+  {id:53, cat:'Systems/Tools', title:'Full HO-Flag',                  tech:'', eqtype:'AGV', lead:'GCFC',  vendor:'', owner:'', type:'', priority:'Essential', cmf:'MO-AUTOMATION-AGV-DIGITAL-001', sites:{DYFC:'0',NEFC:'0',GCFC:'1',DLMC:'0',WCMC:'0',SEFC:'0',BRMC:'NA','Tabler EI':'0','Tabler Rx':'0','St Louis':'0',Mexico:'NA',Cape:'NA',Mehoopany:'NA',Dover:'NA'}, comment:'', docs:'', hold:''},
+  {id:54, cat:'Systems/Tools', title:'Locatio Mismatch PrIME Vs SGVM', tech:'', eqtype:'AGV', lead:'GCFC',  vendor:'', owner:'', type:'', priority:'Essential', cmf:'MO-AUTOMATION-AGV-DIGITAL-002', sites:{DYFC:'0',NEFC:'0',GCFC:'1',DLMC:'0',WCMC:'0',SEFC:'0',BRMC:'NA','Tabler EI':'0','Tabler Rx':'0','St Louis':'0',Mexico:'NA',Cape:'NA',Mehoopany:'NA',Dover:'NA'}, comment:'', docs:'', hold:''},
+  {id:55, cat:'Systems/Tools', title:'Site & AGV LRDT',                tech:'', eqtype:'AGV', lead:'SEFC',  vendor:'', owner:'', type:'', priority:'Essential', cmf:'MO-AUTOMATION-AGV-DIGITAL-003', sites:{DYFC:'1',NEFC:'0',GCFC:'1',DLMC:'0.5',WCMC:'0.5',SEFC:'1',BRMC:'NA','Tabler EI':'1','Tabler Rx':'1','St Louis':'0',Mexico:'NA',Cape:'NA',Mehoopany:'NA',Dover:'NA'}, comment:'', docs:'', hold:''},
+  {id:56, cat:'Systems/Tools', title:"AGV's One Stop Shop V.2",        tech:'', eqtype:'AGV', lead:'NEFC',  vendor:'', owner:'', type:'', priority:'Essential', cmf:'MO-AUTOMATION-AGV-DIGITAL-004', sites:{DYFC:'0',NEFC:'1',GCFC:'0',DLMC:'0.5',WCMC:'0.5',SEFC:'0',BRMC:'NA','Tabler EI':'1','Tabler Rx':'1','St Louis':'0',Mexico:'NA',Cape:'NA',Mehoopany:'NA',Dover:'NA'}, comment:'', docs:'', hold:''},
+  {id:57, cat:'Systems/Tools', title:'Hand in + Hand Status',          tech:'', eqtype:'AGV', lead:'NEFC',  vendor:'', owner:'', type:'', priority:'Essential', cmf:'MO-AUTOMATION-AGV-DIGITAL-006', sites:{DYFC:'1',NEFC:'1',GCFC:'1',DLMC:'0.5',WCMC:'0.5',SEFC:'1',BRMC:'NA','Tabler EI':'1','Tabler Rx':'1','St Louis':'0',Mexico:'NA',Cape:'NA',Mehoopany:'NA',Dover:'NA'}, comment:'', docs:'', hold:''},
+  {id:58, cat:'Systems/Tools', title:'Throughput Tracker',             tech:'', eqtype:'AGV', lead:'DYFC',  vendor:'', owner:'', type:'', priority:'Essential', cmf:'MO-AUTOMATION-AGV-DIGITAL-007', sites:{DYFC:'1',NEFC:'0',GCFC:'0',DLMC:'0.5',WCMC:'0.5',SEFC:'1',BRMC:'NA','Tabler EI':'1','Tabler Rx':'1','St Louis':'0',Mexico:'NA',Cape:'NA',Mehoopany:'NA',Dover:'NA'}, comment:'', docs:'', hold:''},
+  {id:59, cat:'Systems/Tools', title:'AGV Tech Dashboard',             tech:'', eqtype:'AGV', lead:'DYFC',  vendor:'', owner:'', type:'', priority:'Essential', cmf:'MO-AUTOMATION-AGV-DIGITAL-010', sites:{DYFC:'1',NEFC:'1',GCFC:'1',DLMC:'0.5',WCMC:'0.5',SEFC:'1',BRMC:'NA','Tabler EI':'1','Tabler Rx':'1','St Louis':'1',Mexico:'NA',Cape:'NA',Mehoopany:'NA',Dover:'NA'}, comment:'', docs:'', hold:''},
+  // ── Obsolescence ──
+  {id:60, cat:'Obsolescence', title:'SICK 300 - Nano Upgrade Kit - HYG Gen 1 Vehicle', tech:'Gen 1', eqtype:'AGV', lead:'', vendor:'', owner:'', type:'', priority:'', cmf:'', sites:{}, comment:'', docs:'', hold:''},
+  {id:61, cat:'Obsolescence', title:'PCMA Module',            tech:'Gen 1', eqtype:'AGV', lead:'', vendor:'', owner:'', type:'', priority:'', cmf:'', sites:{}, comment:'', docs:'', hold:''},
+  {id:62, cat:'Obsolescence', title:'Slice?',                 tech:'Gen 1', eqtype:'AGV', lead:'', vendor:'', owner:'', type:'', priority:'', cmf:'', sites:{}, comment:'', docs:'', hold:''},
+  {id:63, cat:'Obsolescence', title:'Encoder 2',              tech:'Gen 1', eqtype:'AGV', lead:'', vendor:'', owner:'', type:'', priority:'', cmf:'', sites:{}, comment:'', docs:'', hold:''},
+  {id:64, cat:'Obsolescence', title:'Windows 2016 Server OS', tech:'Gen 1', eqtype:'AGV', lead:'', vendor:'', owner:'', type:'', priority:'', cmf:'', sites:{}, comment:'', docs:'', hold:''},
+  {id:65, cat:'Obsolescence', title:'SQL Server 2016',        tech:'Gen 1', eqtype:'AGV', lead:'', vendor:'', owner:'', type:'', priority:'', cmf:'', sites:{}, comment:'', docs:'', hold:''},
+  // ── Charger ──
+  {id:66, cat:'Charger', title:'Charger Amperage Setting at Standard', tech:'', eqtype:'AGV', lead:'', vendor:'', owner:'', type:'', priority:'', cmf:'', sites:{}, comment:'', docs:'', hold:''},
+  {id:67, cat:'Charger', title:'Charging Thresholds',                 tech:'', eqtype:'AGV', lead:'', vendor:'', owner:'', type:'', priority:'', cmf:'', sites:{}, comment:'', docs:'', hold:''},
+  {id:68, cat:'Charger', title:'Charger Type (new/old)',               tech:'', eqtype:'AGV', lead:'', vendor:'', owner:'', type:'', priority:'', cmf:'', sites:{}, comment:'', docs:'', hold:''},
+  // ── Auto Truck Load/Unload ──
+  {id:69, cat:'Auto Truck Load/Unload', title:'Auto Unload',   tech:'', eqtype:'AGV', lead:'', vendor:'', owner:'', type:'', priority:'', cmf:'', sites:{}, comment:'', docs:'', hold:''},
+  {id:70, cat:'Auto Truck Load/Unload', title:'Auto Loading',  tech:'', eqtype:'AGV', lead:'', vendor:'', owner:'', type:'', priority:'', cmf:'', sites:{}, comment:'', docs:'', hold:''},
+  {id:71, cat:'Auto Truck Load/Unload', title:'Auto Scanning', tech:'', eqtype:'AGV', lead:'', vendor:'', owner:'', type:'', priority:'', cmf:'', sites:{}, comment:'', docs:'', hold:''},
+  // ── Auto Yard Truck ──
+  {id:72, cat:'Auto Yard Truck', title:'Auto Yard Truck', tech:'', eqtype:'AGV', lead:'', vendor:'', owner:'', type:'', priority:'', cmf:'', sites:{}, comment:'', docs:'', hold:''},
+  // ── Operating Strategy by Site ──
+  {id:73, cat:'Operating Strategy by Site', title:'AutoPilot?',                       tech:'', eqtype:'AGV', lead:'', vendor:'', owner:'', type:'', priority:'', cmf:'', sites:{}, comment:'', docs:'', hold:''},
+  {id:74, cat:'Operating Strategy by Site', title:'Health Check',                     tech:'', eqtype:'AGV', lead:'', vendor:'', owner:'', type:'', priority:'', cmf:'', sites:{}, comment:'', docs:'', hold:''},
+  {id:75, cat:'Operating Strategy by Site', title:'Centriline for Priority/Proximity',tech:'', eqtype:'AGV', lead:'', vendor:'', owner:'', type:'', priority:'', cmf:'', sites:{}, comment:'', docs:'', hold:''},
+  // ── Roadmap ──
+  {id:76, cat:'Roadmap', title:'Charger Entry',                              tech:'', eqtype:'AGV', lead:'', vendor:'', owner:'', type:'', priority:'', cmf:'', sites:{}, comment:'Some sites have "non-optimal" aisle looping', docs:'', hold:''},
+  {id:77, cat:'Roadmap', title:'Main Guide Path Aisle Entry Right of Way',   tech:'', eqtype:'AGV', lead:'', vendor:'', owner:'', type:'', priority:'', cmf:'', sites:{}, comment:'AGV from aisle entering main guidepath vs waiting and causing more congestion', docs:'', hold:''},
+];
+
+let nextId = 200;
+let editingId = null;
+
+// ─── PERSIST ───
+function save() { try { localStorage.setItem('agv_v2', JSON.stringify(data)); } catch(e){} }
+function load() { try { const s = localStorage.getItem('agv_v2'); if(s) data = JSON.parse(s); } catch(e){} }
+
+// ─── HELPERS ───
+function calcPct(item) {
+  const vals = Object.values(item.sites||{}).filter(v => v!==''&&v!=='NA');
+  if (!vals.length) return null;
+  const sum = vals.reduce((a,v)=>a+parseFloat(v),0);
+  return Math.round(sum/vals.length*100);
+}
+function pctColor(p) { return p===null?'n':p>=80?'g':p>=40?'y':'r'; }
+function pctBarClass(p) { return p===null?'pbar-n':p>=80?'pbar-g':p>=40?'pbar-y':'pbar-r'; }
+function tileCls(p) { return p===null?'cn':p>=80?'cg':p>=40?'cy':'cr'; }
+
+function statusBadge(v) {
+  if (v==='1')   return '<span class="b b-complete">✓ Complete</span>';
+  if (v==='0.5') return '<span class="b b-progress">⟳ In Progress</span>';
+  if (v==='0')   return '<span class="b b-delayed">✕ Delayed</span>';
+  if (v==='NA')  return '<span class="b b-na">N/A</span>';
+  return '<span class="b-blank">—</span>';
+}
+function eqBadge(t) {
+  if (!t) return '';
+  const cls = {AGV:'eq-agv',AMR:'eq-amr',QR:'eq-qr'}[t]||'';
+  return `<span class="eq-tag ${cls}">${t}</span>`;
+}
+function priBadge(p) {
+  if (!p) return '';
+  const cls = {Essential:'b-essential',High:'b-high',Medium:'b-medium',Low:'b-low'}[p]||'';
+  return `<span class="b ${cls}">${p}</span>`;
+}
+
+// ─── SIDEBAR ───
+function renderSidebar() {
+  const cats = CATEGORIES;
+  let html = '<div class="nav-section">Views</div>';
+  html += `<div class="nav-item active" onclick="switchTab('overview');setActiveNav(this)">📊 Overview</div>`;
+  html += `<div class="nav-item" onclick="switchTab('matrix');clearCatFilter();setActiveNav(this)">📋 Full Matrix</div>`;
+  html += '<div class="nav-section">Categories</div>';
+  cats.forEach(cat => {
+    const count = data.filter(d=>d.cat===cat).length;
+    html += `<div class="nav-item" onclick="switchTab('matrix');setCatFilter('${cat}');setActiveNav(this)">${cat} <span class="badge-count">${count}</span></div>`;
+  });
+  document.getElementById('sidebar').innerHTML = html;
+}
+function setActiveNav(el) { document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active')); el.classList.add('active'); }
+function setCatFilter(cat) { document.getElementById('f-cat').value = cat; renderMatrix(); }
+function clearCatFilter() { document.getElementById('f-cat').value = ''; renderMatrix(); }
+
+// ─── KPI ───
+function renderKPI() {
+  const items = data;
+  let complete=0, inProg=0, delayed=0, noData=0;
+  items.forEach(d => {
+    const p = calcPct(d);
+    if (p===null) noData++;
+    else if (p===100) complete++;
+    else if (p>0) inProg++;
+    else delayed++;
+  });
+  document.getElementById('kpi-row').innerHTML = `
+    <div class="kpi g"><div class="n">${complete}</div><div class="l">Complete</div></div>
+    <div class="kpi y"><div class="n">${inProg}</div><div class="l">In Progress</div></div>
+    <div class="kpi r"><div class="n">${delayed}</div><div class="l">Delayed</div></div>
+    <div class="kpi"><div class="n">${noData}</div><div class="l">Pending Data</div></div>
+    <div class="kpi"><div class="n">${items.length}</div><div class="l">Total Items</div></div>
+  `;
+  document.getElementById('hdr-counts').textContent = `${items.length} items · ${SITES.length} sites`;
+}
+
+// ─── SITE OVERVIEW ───
+function renderSiteOverview() {
+  const html = SITES.map(site => {
+    const items = data.filter(d => d.sites[site]!==undefined && d.sites[site]!=='' && d.sites[site]!=='NA');
+    if (!items.length) return `<div class="site-tile cn"><div class="sn">${site}</div><div class="sp">—</div></div>`;
+    const sum = items.reduce((a,d)=>a+parseFloat(d.sites[site]||0),0);
+    const pct = Math.round(sum/items.length*100);
+    const cls = tileCls(pct);
+    return `<div class="site-tile ${cls}"><div class="sn">${site}</div><div class="sp">${pct}%</div></div>`;
+  }).join('');
+  document.getElementById('site-overview').innerHTML = html;
+}
+
+// ─── CATEGORY PROGRESS ───
+function renderCatProgress() {
+  const html = CATEGORIES.map(cat => {
+    const items = data.filter(d=>d.cat===cat);
+    const withData = items.filter(d=>calcPct(d)!==null);
+    if (!withData.length) return `<div class="pbar" style="margin-bottom:10px"><span style="width:200px;font-size:.8rem">${cat}</span><div class="pbar-track"><div class="pbar-fill pbar-n" style="width:0%"></div></div><span style="width:50px;font-size:.75rem;color:var(--gray)">—</span><span style="font-size:.75rem;color:var(--gray);margin-left:8px">${items.length} items</span></div>`;
+    const avg = Math.round(withData.reduce((a,d)=>a+calcPct(d),0)/withData.length);
+    return `<div class="pbar" style="margin-bottom:10px"><span style="width:200px;font-size:.8rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex-shrink:0">${cat}</span><div class="pbar-track"><div class="pbar-fill ${pctBarClass(avg)}" style="width:${avg}%"></div></div><span style="width:50px;font-size:.78rem;padding-left:6px">${avg}%</span><span style="font-size:.75rem;color:var(--gray);margin-left:8px">${items.length} items</span></div>`;
+  }).join('');
+  document.getElementById('cat-progress').innerHTML = html;
+}
+
+// ─── FILL FILTER DROPDOWNS ───
+function fillFilters() {
+  const catSel = document.getElementById('f-cat');
+  CATEGORIES.forEach(c => { const o=document.createElement('option'); o.value=o.textContent=c; catSel.appendChild(o); });
+  const siteSel = document.getElementById('f-site');
+  SITES.forEach(s => { const o=document.createElement('option'); o.value=o.textContent=s; siteSel.appendChild(o); });
+}
+
+// ─── MATRIX ───
+function renderMatrix() {
+  const search = document.getElementById('f-search').value.toLowerCase();
+  const fCat = document.getElementById('f-cat').value;
+  const fEq = document.getElementById('f-eqtype').value;
+  const fPri = document.getElementById('f-priority').value;
+  const fSite = document.getElementById('f-site').value;
+
+  let filtered = data.filter(d => {
+    if (search && !d.title.toLowerCase().includes(search)) return false;
+    if (fCat && d.cat !== fCat) return false;
+    if (fEq && d.eqtype !== fEq) return false;
+    if (fPri && d.priority !== fPri) return false;
+    if (fSite && (d.sites[fSite]===undefined || d.sites[fSite]==='')) return false;
+    return true;
+  });
+
+  // Group by category
+  const groups = {};
+  filtered.forEach(d => { if (!groups[d.cat]) groups[d.cat] = []; groups[d.cat].push(d); });
+
+  const cols = fSite ? [fSite] : SITES;
+  const headerRow = `<thead><tr>
+    <th style="width:36px">#</th>
+    <th>Improvement Title</th>
+    <th>Eq. Type</th>
+    <th>Technology</th>
+    <th>Lead Site</th>
+    <th>Vendor</th>
+    <th>Priority</th>
+    ${cols.map(s=>`<th style="width:70px;text-align:center">${s}</th>`).join('')}
+    <th style="width:80px">Completion</th>
+    <th style="width:50px"></th>
+  </tr></thead>`;
+
+  let html = '';
+  Object.entries(groups).forEach(([cat, items]) => {
+    const catId = 'cat-'+cat.replace(/[^a-z0-9]/gi,'_');
+    html += `<div class="cat-block">
+      <div class="cat-header" id="hdr-${catId}" onclick="toggleCat('${catId}')">
+        📁 ${cat}
+        <span style="margin-left:8px;font-size:.75rem;font-weight:400;color:#555">${items.length} item${items.length!==1?'s':''}</span>
+        <span class="chevron">▾</span>
+      </div>
+      <div class="cat-body" id="body-${catId}">
+        <table>${headerRow}<tbody>`;
+    items.forEach(d => {
+      const pct = calcPct(d);
+      const pctHtml = pct!==null
+        ? `<div class="pbar"><div class="pbar-track"><div class="pbar-fill ${pctBarClass(pct)}" style="width:${pct}%"></div></div><span style="font-size:.72rem;margin-left:4px">${pct}%</span></div>`
+        : '<span style="color:#ccc;font-size:.75rem">—</span>';
+      const holdHtml = d.hold ? `<span class="hold-banner" title="${d.hold}">⏸ Hold</span> ` : '';
+      html += `<tr>
+        <td style="color:var(--gray);font-size:.72rem">${d.id}</td>
+        <td><div style="font-weight:600">${holdHtml}${d.title}</div>${d.comment?`<div style="font-size:.72rem;color:var(--gray);margin-top:2px">💬 ${d.comment.substring(0,60)}${d.comment.length>60?'…':''}</div>`:''}</td>
+        <td>${eqBadge(d.eqtype)}</td>
+        <td style="font-size:.78rem">${d.tech}</td>
+        <td style="font-size:.78rem">${d.lead}</td>
+        <td style="font-size:.78rem">${d.vendor}</td>
+        <td>${priBadge(d.priority)}</td>
+        ${cols.map(s=>`<td style="text-align:center">${statusBadge(d.sites[s]??'')}</td>`).join('')}
+        <td>${pctHtml}</td>
+        <td><button class="btn-edit" onclick="openDrawer(${d.id})">✏️</button></td>
+      </tr>`;
+    });
+    html += `</tbody></table></div></div>`;
+  });
+
+  document.getElementById('matrix-content').innerHTML = html || '<p style="color:var(--gray);padding:20px">No items match your filters.</p>';
+}
+
+function toggleCat(catId) {
+  const body = document.getElementById('body-'+catId);
+  const hdr = document.getElementById('hdr-'+catId);
+  body.classList.toggle('hidden');
+  hdr.classList.toggle('collapsed');
+}
+
+// ─── DRAWER ───
+function openDrawer(id) {
+  editingId = id || null;
+  const item = id ? data.find(d=>d.id===id) : null;
+  document.getElementById('drawer-title').textContent = id ? 'Edit Item' : 'Add Item';
+  document.getElementById('btn-delete').style.display = id ? 'block' : 'none';
+
+  document.getElementById('d-title').value   = item?.title    || '';
+  document.getElementById('d-tech').value    = item?.tech     || '';
+  document.getElementById('d-eqtype').value  = item?.eqtype   || '';
+  document.getElementById('d-lead').value    = item?.lead     || '';
+  document.getElementById('d-vendor').value  = item?.vendor   || '';
+  document.getElementById('d-owner').value   = item?.owner    || '';
+  document.getElementById('d-type').value    = item?.type     || '';
+  document.getElementById('d-priority').value= item?.priority || '';
+  document.getElementById('d-cmf').value     = item?.cmf      || '';
+  document.getElementById('d-comment').value = item?.comment  || '';
+  document.getElementById('d-docs').value    = item?.docs     || '';
+  document.getElementById('d-hold').value    = item?.hold     || '';
+
+  // Category dropdown
+  const catSel = document.getElementById('d-cat');
+  catSel.innerHTML = '<option value="">— Select Category —</option>' + CATEGORIES.map(c=>`<option value="${c}" ${item?.cat===c?'selected':''}>${c}</option>`).join('');
+
+  // Site inputs
+  document.getElementById('d-sites').innerHTML = SITES.map(s => `
+    <div class="site-input">
+      <label>${s}</label>
+      <select id="ds-${s.replace(/ /g,'_')}">
+        <option value="">—</option>
+        <option value="1"   ${item?.sites[s]==='1'  ?'selected':''}>✓ Complete</option>
+        <option value="0.5" ${item?.sites[s]==='0.5'?'selected':''}>⟳ In Progress</option>
+        <option value="0"   ${item?.sites[s]==='0'  ?'selected':''}>✕ Delayed</option>
+        <option value="NA"  ${item?.sites[s]==='NA' ?'selected':''}>N/A</option>
+      </select>
+    </div>`).join('');
+
+  document.getElementById('drawer-overlay').classList.add('open');
+  document.getElementById('drawer').classList.add('open');
+}
+
+function closeDrawer() {
+  document.getElementById('drawer-overlay').classList.remove('open');
+  document.getElementById('drawer').classList.remove('open');
+  editingId = null;
+}
+
+function saveItem() {
+  const title = document.getElementById('d-title').value.trim();
+  if (!title) { alert('Please enter an improvement title.'); return; }
+  const sites = {};
+  SITES.forEach(s => { sites[s] = document.getElementById('ds-'+s.replace(/ /g,'_')).value; });
+  const item = {
+    id:       editingId || ++nextId,
+    cat:      document.getElementById('d-cat').value,
+    title,
+    tech:     document.getElementById('d-tech').value,
+    eqtype:   document.getElementById('d-eqtype').value,
+    lead:     document.getElementById('d-lead').value,
+    vendor:   document.getElementById('d-vendor').value,
+    owner:    document.getElementById('d-owner').value,
+    type:     document.getElementById('d-type').value,
+    priority: document.getElementById('d-priority').value,
+    cmf:      document.getElementById('d-cmf').value,
+    comment:  document.getElementById('d-comment').value,
+    docs:     document.getElementById('d-docs').value,
+    hold:     document.getElementById('d-hold').value,
+    sites
+  };
+  if (editingId) {
+    const idx = data.findIndex(d=>d.id===editingId);
+    if (idx>=0) data[idx] = item;
+  } else {
+    data.push(item);
+  }
+  save();
+  closeDrawer();
+  renderAll();
+  renderSidebar();
+}
+
+function deleteItem() {
+  if (!editingId) return;
+  const item = data.find(d=>d.id===editingId);
+  if (!confirm(`Delete "${item?.title}"?`)) return;
+  data = data.filter(d=>d.id!==editingId);
+  save();
+  closeDrawer();
+  renderAll();
+  renderSidebar();
+}
+
+// ─── TABS ───
+function switchTab(name) {
+  document.querySelectorAll('.tab').forEach((t,i)=>t.classList.toggle('active',['overview','matrix'][i]===name));
+  document.querySelectorAll('.tab-pane').forEach(p=>p.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+}
+
+function renderAll() {
+  renderKPI();
+  renderSiteOverview();
+  renderCatProgress();
+  renderMatrix();
+}
+
+// ─── INIT ───
+load();
+fillFilters();
+renderSidebar();
+renderAll();
+</script>
+</body>
+</html>
